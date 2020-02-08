@@ -17,7 +17,7 @@
 	https://strategywiki.org/wiki/Battle_City/Walkthrough
 
 
-#### 实现目标:
+#### 实现目标[还未完成]:
 
 	单人对抗ai
 	双人协作对抗ai
