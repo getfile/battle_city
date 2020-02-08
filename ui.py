@@ -3,7 +3,7 @@ import os, sys, pygame
 
 class UI:
 	def __init__(self):
-		self.font = pygame.font.Font("GameMy/resources/namco.ttf", 10)
+		self.font = pygame.font.Font("resources/namco.ttf", 10)
 		self.frame = 0
 
 	def drawFrame(self, canvas):

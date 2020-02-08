@@ -11,7 +11,7 @@ class Effect:
 		self.frames = []  #播放动画集
 		self.frameGap = 3
 		self.scene = scene
-		self.sound = pygame.mixer.Sound("GameMy/resources/sound/explosion_2.ogg")
+		self.sound = pygame.mixer.Sound("resources/sound/explosion_2.ogg")
 
 		if len(self.pics) > 0: return
 		self.pics.append(tools.getSubPic(pygame.Rect(256, 88, 8, 8), 6))  #黑块0

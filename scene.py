@@ -11,7 +11,7 @@ from ui import *
 class Scene:
 	def __init__(self, surf):
 		self.level = Level(surf)
-		self.level.mapParseJson("GameMy/resources/level/stage-17.json")
+		self.level.mapParseJson("resources/level/stage-17.json")
 		self.level.mapDraw()
 		self.tankMe = Tank(self)  #玩家坦克
 		self.tankCo = Tank(self)  #协作坦克

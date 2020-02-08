@@ -1,6 +1,6 @@
 import pygame
 
-bigPic = pygame.image.load("GameMy/resources/Sprites.png")
+bigPic = pygame.image.load("resources/Sprites.png")
 
 
 # 从图像中获取某区域图像, 并缩放到指定尺寸
