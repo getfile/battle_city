@@ -18,8 +18,8 @@ class Bullet:
 
 	def init(self, scene, tank, cx, cy):
 		self.id = 0
-		self.state = 1  #0空闲(缓存用),1使用
-		self.tankId = tank.id  #发射炮弹的坦克id
+		self.isCache = False  #0空闲(缓存用),1使用
+		self.tank = tank  #发射炮弹的坦克id
 		self.scene = scene
 		self.rect = pygame.Rect(0, 0, 24, 24)
 		self.level = tank.level  #炮弹等级(也是坦克等级)
@@ -35,7 +35,7 @@ class Bullet:
 		self.cy = cy
 
 	def update(self):
-		if self.state == 0: return
+		if self.isCache: return
 		self.cx += self.dx * self.speed
 		self.cy += self.dy * self.speed
 		self.rect.x = self.cx - 12
@@ -43,8 +43,8 @@ class Bullet:
 		if self.scene.flyCollision(self.rect):
 			self.scene.newEffect(self.cx, self.cy, effect.EffectBlast)
 			self.scene.delBullet(self)
-			self.state = 0
+			self.isCache = True
 
 	def draw(self, canvas):
-		if self.state == 0: return
+		if self.isCache: return
 		canvas.blit(self.pics[self.dire], (self.rect.x, self.rect.y))

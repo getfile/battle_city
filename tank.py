@@ -1,4 +1,5 @@
-import sys, pygame
+import sys, random, pygame
+from enum import Enum
 
 import tools
 import keymgr
@@ -27,24 +28,34 @@ class BaseTank:
 		self.colorPic.set_colorkey(pygame.Color(0, 0, 0))
 
 	def init(self):
-		self.state = 0  #0缓存, 出生, 生存, 死亡
 		self.id = 0
+		self.isCache = False
 		self.rect = pygame.Rect(0, 0, 48, 48)
+		self.level = 0
 		self.color = pygame.Color(0, 255, 0)  #坦克颜色
-
-		self.onSnow = False
-		self.px = self.py = 0  #左上角坐标
-		self.dire = 0  #当前方向
-		self.speed = 2  #移动速度
 
 		self.moving = 0  #是否正在移动
 		self.ani = 0  #履带动画状态
 
+		self.dire = 0  #当前方向
+		self.speed = 2  #最大移动速度
+		self.vx = self.vy = 0  #当前速度
+		self.vxNew = self.vyNew = 0  #输入的动力
+
 		self.bulletSpeed = 8  #炮弹速度
 		self.bulletNum = 2  #能同时存在的最大炮弹数量
 		self.bulletCount = 0  #当前已经发射的炮弹数量
+		self.bulletGap = 20  #炮弹发射之间的时间间隔(帧数)
+		self.bulletFrame = 0  #当前发射后的倒计时
+
+		self.fireNew = False  #是否开火
+
+	# 炮弹爆炸销毁
+	def bulletBomb(self):
+		self.bulletCount -= 1
 
 	def draw(self, canvas):
+		if self.isCache: return
 		if self.moving: self.ani += 1
 		else: self.ani = 0
 		i = int(self.ani / 3) % 2
@@ -54,36 +65,51 @@ class BaseTank:
 		self.colorPic.fill(self.color, special_flags=pygame.BLEND_MULT)
 		canvas.blit(self.colorPic, self.rect.topleft)
 
+	# 计算输入(用户, ai, 网络)
+	def _input(self):
+		pass
 
-class Tank(BaseTank):
-	def __init__(self, scene):
-		super().__init__(scene)
-		self.init()
+	# 计算地形对速度的影响
+	def _updateTerrain(self):
+		if self.scene.moveOnSnow(self.rect):
+			self.vx *= 0.95
+			self.vy *= 0.95
+		else:
+			self.vx = self.vy = 0
 
-	def init(self):
-		super().init()
-		self.level = 3  #等级(吃'星'会提高等级, 等级越高, 威力越大)
-		# 				 (0级:单发, 1级:单发加速, 2级:双发加速, 3级:双发加速+消铁)
-		self.bulletGap = 20  #炮弹发射之间的时间间隔(帧数)
-		self.bulletFrame = 0  #当前发射后的时间计数
+	# 计算动力对速度的影响
+	def _updatePower(self):
+		self.vx += self.vxNew
+		self.vy += self.vyNew
 
-	# 升级
-	def levelUp(self):
-		if self.level == 3: return
-		self.level += 1
-		if self.level == 1: self.bulletSpeed += 2
-		if self.level == 2: self.bulletNum += 1
+	# 计算约束
+	def _updateBound(self):
+		# 速度约束
+		maxspeed = self.speed
+		if self.scene.moveOnSnow(self.rect):
+			maxspeed = self.speed * 0.8
+		self.vx = min(max(self.vx, -maxspeed), maxspeed)
+		self.vy = min(max(self.vy, -maxspeed), maxspeed)
 
-	# 炮弹爆炸销毁
-	def bulletBomb(self):
-		self.bulletCount -= 1
+		oldx = self.rect.x
+		oldy = self.rect.y
+		self.rect.x += int(self.vx)
+		self.rect.y += int(self.vy)
 
-	# 发射炮弹
-	def updateFire(self):
+		# 转向约束
+		if int(self.dire / 2) == 0: oldx = self.rect.x = round(self.rect.x / 24) * 24
+		else: oldy = self.rect.y = round(self.rect.y / 24) * 24
+		# 障碍约束
+		if self.scene.moveCollision(self):
+			self.rect.x = oldx
+			self.rect.y = oldy
+
+	# 计算炮弹的发射
+	def _updateBullet(self):
 		self.bulletFrame += 1
-		if self.bulletCount == self.bulletNum: return
 		if self.bulletFrame < self.bulletGap: return
-		if not (keymgr.KeyMgr().isKeyJ() or keymgr.KeyMgr().isKeyJnum()): return
+		if self.bulletCount == self.bulletNum: return
+		if not self.fireNew: return
 		cx = cy = 0
 		if self.dire == 0:
 			cx = self.rect.centerx
@@ -102,92 +128,114 @@ class Tank(BaseTank):
 		self.bulletCount += 1
 		self.bulletFrame = 0
 
-	# 移动坦克
 	def update(self):
-		if self.onSnow:
-			self.px = self.px * 0.96  #打滑系数
-			self.py = self.py * 0.96
-		else:
-			self.px = self.py = 0
+		self._input()
+		self._updateTerrain()
+		self._updatePower()
+		self._updateBound()
+		self._updateBullet()
 
-		# print(self.px, self.py)
 
-		newDire = self.dire
-		self.moving = 1
+class TankMe(BaseTank):
+	def __init__(self, scene):
+		super().__init__(scene)
+		self.init()
+
+	def init(self):
+		super().init()
+		self.level = 3  #等级(吃'星'会提高等级, 等级越高, 威力越大)
+		# 				 (0级:单发, 1级:单发加速, 2级:双发加速, 3级:双发加速+消铁)
+
+	# 升级
+	def levelUp(self):
+		if self.level == 3: return
+		self.level += 1
+		if self.level == 1: self.bulletSpeed += 2
+		if self.level == 2: self.bulletNum += 1
+
+	def _input(self):
+		self.moving = True
 		if keymgr.KeyMgr().isKeyW() or keymgr.KeyMgr().isKeyWnum():
-			newDire = 0
-			self.px = 0
-			self.py = -self.speed
+			self.dire = 0
+			self.vxNew = 0
+			self.vyNew = -self.speed
 		elif keymgr.KeyMgr().isKeyS() or keymgr.KeyMgr().isKeySnum():
-			newDire = 1
-			self.px = 0
-			self.py = self.speed
+			self.dire = 1
+			self.vxNew = 0
+			self.vyNew = self.speed
 		elif keymgr.KeyMgr().isKeyA() or keymgr.KeyMgr().isKeyAnum():
-			newDire = 2
-			self.py = 0
-			self.px = -self.speed
+			self.dire = 2
+			self.vxNew = -self.speed
+			self.vyNew = 0
 		elif keymgr.KeyMgr().isKeyD() or keymgr.KeyMgr().isKeyDnum():
-			newDire = 3
-			self.py = 0
-			self.px = self.speed
+			self.dire = 3
+			self.vxNew = self.speed
+			self.vyNew = 0
 		else:
-			self.moving = 0
+			self.vxNew = self.vyNew = 0
+			self.moving = False
 
-		oldx = self.rect.x
-		oldy = self.rect.y
-		if self.scene.moveOnSnow(self.rect):  #在雪地上
-			if self.moving:
-				self.rect.x += int(self.px * 0.5)  #减速效果
-				self.rect.y += int(self.py * 0.5)
-			else:
-				self.rect.x += int(self.px)  #打滑效果
-				self.rect.y += int(self.py)
-			self.onSnow = True
+		self.fireNew = (keymgr.KeyMgr().isKeyJ() or keymgr.KeyMgr().isKeyJnum())
+
+
+class TankState(Enum):
+	Cache = 0
+	Born = 1
+	PreAlive = 2
+	Alive = 3
+	Die = 4
+	Thinking = 5
+
+
+class TankAi(BaseTank):
+	def __init__(self, scene):
+		super().__init__(scene)
+
+	def init(self):
+		super().init()
+		self.color = pygame.Color(100, 100, 100)
+		self.level = 1
+		self.bulletNum = 1
+		self.stateAi = TankState.Born  #缓存, 出生, 生存, 死亡
+		self.direAi = 0
+		self.distAi = 0
+		self._thinking()
+
+	def draw(self, canvas):
+		# if self.stateAi.value <= TankState.Born.value: return
+		super().draw(canvas)
+
+	def _input(self):
+		self.moving = True
+		if self.direAi == 0:
+			self.dire = 0
+			self.vxNew = 0
+			self.vyNew = -self.speed
+		elif self.direAi == 1:
+			self.dire = 1
+			self.vxNew = 0
+			self.vyNew = self.speed
+		elif self.direAi == 2:
+			self.dire = 2
+			self.vxNew = -self.speed
+			self.vyNew = 0
+		elif self.direAi == 3:
+			self.dire = 3
+			self.vxNew = self.speed
+			self.vyNew = 0
 		else:
-			self.rect.x += self.px
-			self.rect.y += self.py
-			self.onSnow = False
+			self.vxNew = self.vyNew = 0
+			self.moving = False
 
-		if int(newDire / 2) != int(self.dire / 2):  # 如果有转向, 校准转向位置
-			if int(newDire / 2) == 0: self.rect.x = round(self.rect.x / 24) * 24
-			else: self.rect.y = round(self.rect.y / 24) * 24
-		elif self.scene.moveCollision(self.rect):  #碰到障碍
-			self.rect.x = oldx
-			self.rect.y = oldy
+	def update(self):
+		self.distAi -= 1
+		if self.distAi <= 0: self._thinking()
+		super().update()
+		# print(self.vx, self.vy)
 
-		self.dire = newDire
-		self.updateFire()
-
-	# # 移动坦克
-	# def update(self):
-	# 	self.moving = 1
-	# 	self.px = self.py = 0
-	# 	newDire = self.dire
-	# 	if keymgr.KeyMgr().isKeyW() or keymgr.KeyMgr().isKeyWnum():
-	# 		newDire = 0
-	# 		self.py = -self.speed
-	# 	elif keymgr.KeyMgr().isKeyS() or keymgr.KeyMgr().isKeySnum():
-	# 		newDire = 1
-	# 		self.py = self.speed
-	# 	elif keymgr.KeyMgr().isKeyA() or keymgr.KeyMgr().isKeyAnum():
-	# 		newDire = 2
-	# 		self.px = -self.speed
-	# 	elif keymgr.KeyMgr().isKeyD() or keymgr.KeyMgr().isKeyDnum():
-	# 		newDire = 3
-	# 		self.px = self.speed
-	# 	else:
-	# 		self.moving = 0
-
-	# 	# 如果有转向, 校准转向位置
-	# 	if int(newDire / 2) != int(self.dire / 2):
-	# 		if int(newDire / 2) == 0: self.rect.x = round(self.rect.x / 24) * 24
-	# 		else: self.rect.y = round(self.rect.y / 24) * 24
-	# 	else:
-	# 		self.rect.x += self.px
-	# 		self.rect.y += self.py
-	# 		if self.scene.moveCollision(self.rect):  #碰到障碍
-	# 			self.rect.x -= self.px
-	# 			self.rect.y -= self.py
-
-	# 	self.dire = newDire
-	# 	self.updateFire()
+	# 思考
+	def _thinking(self):
+		self.direAi = random.randint(-1, 3)
+		self.distAi = random.randint(2, 100)
+		self.fireNew = True if random.random() > 0.5 else False
+		# print("ai fire:", self.fireNew)
