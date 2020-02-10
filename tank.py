@@ -239,3 +239,7 @@ class TankAi(BaseTank):
 		self.distAi = random.randint(2, 100)
 		self.fireNew = True if random.random() > 0.5 else False
 		# print("ai fire:", self.fireNew)
+
+	def destory(self):
+		self.scene.newEffect(self.rect.centerx, self.rect.centery, effect.EffectBomb)
+		self.isCache = True

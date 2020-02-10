@@ -22,6 +22,7 @@ class Bullet:
 		self.tank = tank  #发射炮弹的坦克id
 		self.scene = scene
 		self.rect = pygame.Rect(0, 0, 24, 24)
+		self.rectTest = pygame.Rect(0, 0, 12, 12)  #碰撞检测用矩形
 		self.level = tank.level  #炮弹等级(也是坦克等级)
 		self.speed = tank.bulletSpeed  #移动速度(必须要比坦克的速度快, 但不能超过小块的宽度)
 		self.dx = 0  #移动矢量
@@ -34,13 +35,21 @@ class Bullet:
 		self.cx = cx  #中心位置
 		self.cy = cy
 
+	# 被击毁
+	def destory(self):
+		# self.scene.newEffect(self.cx, self.cy, effect.EffectBlast)
+		self.scene.delBullet(self)
+		self.isCache = True
+
 	def update(self):
 		if self.isCache: return
 		self.cx += self.dx * self.speed
 		self.cy += self.dy * self.speed
 		self.rect.x = self.cx - 12
 		self.rect.y = self.cy - 12
-		if self.scene.flyCollision(self.rect):
+		self.rectTest.x = self.cx - 6
+		self.rectTest.y = self.cy - 6
+		if self.scene.flyCollision(self):
 			self.scene.newEffect(self.cx, self.cy, effect.EffectBlast)
 			self.scene.delBullet(self)
 			self.isCache = True

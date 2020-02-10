@@ -76,7 +76,7 @@ class EffectBomb(Effect):
 
 	def update(self):
 		super().update()
-		self.cx, self.cy = self.scene.getTankPos()
+		# self.cx, self.cy = self.scene.getTankPos()
 
 
 # 无敌效果

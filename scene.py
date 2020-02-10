@@ -11,7 +11,7 @@ from ui import *
 class Scene:
 	def __init__(self, surf):
 		self.level = Level(surf)
-		self.level.mapParseJson("resources/level/stage-31.json")
+		self.level.mapParseJson("resources/level/stage-20.json")
 		self.level.mapDraw()
 		self.tankMe = TankMe(self)  #玩家坦克
 		self.tankCo = TankMe(self)  #协作坦克
@@ -84,6 +84,7 @@ class Scene:
 	def moveCollision(self, tank):
 		if self.level.isBlockingMove(tank.rect): return True
 		for t in self.tankAIs:
+			if t.isCache: continue
 			if tank == t: continue
 			if tank.rect.colliderect(t.rect): return True
 		if tank == self.tankMe: return False
@@ -91,8 +92,22 @@ class Scene:
 		return False
 
 	# 炮弹碰撞检测, 返回是否有碰撞产生
-	def flyCollision(self, rect):
-		return self.level.isBlockingFly(rect)
+	def flyCollision(self, bullet):
+		if self.level.isBlockingFly(bullet.rectTest):
+			return True
+		for b in self.bullets:
+			if b.isCache: continue
+			if bullet is b: continue
+			if bullet.rectTest.colliderect(b.rectTest):
+				b.destory()
+				return True
+		for t in self.tankAIs:
+			if t.isCache: continue
+			if bullet.tank is t: continue
+			if bullet.rectTest.colliderect(t.rect):
+				t.destory()
+				return True
+		return False
 
 	def update(self):
 		self.tankMe.update()
