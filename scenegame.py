@@ -7,11 +7,11 @@ from effect import *
 from ui import *
 
 
-# 场景: 主界面场景, 游戏场景, 统计场景
-class Scene:
+# 游戏界面
+class SceneGame:
 	def __init__(self, surf):
 		self.level = Level(surf)
-		self.level.mapParseJson("resources/level/stage-20.json")
+		self.level.mapParseJson(25)  # 1-35
 		self.level.mapDraw()
 		self.tankMe = TankMe(self)  #玩家坦克
 		self.tankCo = TankMe(self)  #协作坦克
@@ -19,7 +19,7 @@ class Scene:
 		self.tankAIs = []  #敌方坦克集: 兼缓存池用
 		for i in range(10):
 			tankAi = TankAi(self)
-			tankAi.init()
+			tankAi.init(random.randint(0, 3))
 			tankAi.rect.topleft = (i * 48 + 48, 0)
 			self.tankAIs.append(tankAi)
 		self.bullets = []  #炮弹集: 兼缓存池用(包括正使用的和空闲待用的)
@@ -104,6 +104,7 @@ class Scene:
 		for t in self.tankAIs:
 			if t.isCache: continue
 			if bullet.tank is t: continue
+			if type(bullet.tank) == type(t): continue
 			if bullet.rectTest.colliderect(t.rect):
 				t.destory()
 				return True

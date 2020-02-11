@@ -1,6 +1,6 @@
 import os, sys, pygame
 
-from scene import *
+from scenegame import *
 from level import *
 from keymgr import *
 
@@ -12,7 +12,7 @@ def main():
 
 	size = width, height = 24 * 13 * 2, 24 * 13 * 2
 	canvas = pygame.display.set_mode(size, flags=pygame.RESIZABLE)
-	scene = Scene(canvas)
+	scene = SceneGame(canvas)
 	key = KeyMgr()
 
 	clock = pygame.time.Clock()

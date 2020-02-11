@@ -9,7 +9,7 @@ class Bouns:
 		pass
 
 
-# 地图元素: 0空地, 1砖墙(16*16), 2河流, 3雪地, 4树林, 5铁墙(4*4), 6堡垒
+# 地图元素:
 # 每个元素能分解成16个小元素
 class Item:
 	def __init__(self):
@@ -20,18 +20,22 @@ class Item:
 # 由13*13个大元素组成
 class Level:
 	def __init__(self, surf):
+		self.itemPic = []  #元素图例集
+		self.itemWid = 24
+		self.itemHei = 24
+		self.col = 26  # 小元素的数量(x方向)
+		self.row = 26
 		self.bound = surf.get_rect()
 		self.background = surf.copy()
 		self.treeGround = surf.copy()
 		self.treeGround.set_colorkey(pygame.Color(0, 0, 0))
-		self.col = 26  # 小元素的数量(x方向)
-		self.row = 26
-		self.map = []  #关卡元素集
+		self.map = []  #关卡元素集(0空地, 1砖墙(16*16), 2河流, 3雪地, 4树林, 5铁墙(4*4), 6堡垒)
 		self.map = [[0 for i in range(self.col)] for i in range(self.row)]
-		self.itemIds = {'X': 0, 'B': 1, 'R': 2, 'S': 3, 'F': 4, 'T': 5, 'E': 6}  #json中元素字符 映射为id
-		self.itemPic = []  #元素图例集
-		self.itemWid = 24
-		self.itemHei = 24
+		self.mapTanks = []
+		# self.tankBasic = 0  #普通坦克(100, 1, slow, slow)
+		# self.tankFast = 0  #快速坦克(200, 1, fast, normal)
+		# self.tankPower = 0  #火力坦克(300, 1, normal, fast)
+		# self.tankArmor = 0  #重甲坦克(400, 4, normal, normal)
 		self._initRes()
 
 	def _initRes(self):
@@ -60,7 +64,10 @@ class Level:
 	# 解析关卡文件(json格式)
 	# 坦克类型: basic| fast| power| armor
 	# 地形类型: 空地0 X| 砖块1 B<n>| 河流2 R| 雪地3 S| 森林4 F| 钢块5 T<n>| 堡垒6 E
-	def mapParseJson(self, jsonFile):
+	def mapParseJson(self, levelNo):
+
+		self.itemIds = {'X': 0, 'B': 1, 'R': 2, 'S': 3, 'F': 4, 'T': 5, 'E': 6}  #json中元素字符 映射为id
+		jsonFile = "resources/level/stage-" + str(levelNo) + ".json"
 		f = open(jsonFile, 'rb')
 		txt = f.read()
 		f.close()
@@ -74,6 +81,14 @@ class Level:
 				x += 1
 			x = 0
 			y += 1
+		bots = j['bots']
+		for item in bots:
+			numtype = item.split("*")
+			if len(numtype) < 2: continue
+			self.mapTanks += [numtype[1] for i in range(int(numtype[0]))]
+
+		print(jsonFile)
+		print(self.mapTanks)
 		# print(self.map)
 
 	def _fillItems(self, x, y, item):

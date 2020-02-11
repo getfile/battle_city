@@ -13,15 +13,13 @@ class BaseTank:
 
 	def __init__(self, scene):
 		if self.pics == None:
-			self.pics = [[0 for i in range(2)] for i in range(4)]
-			self.pics[0][0] = tools.getSubPic(pygame.Rect(128, 112, 16, 16), 3)
-			self.pics[0][1] = tools.getSubPic(pygame.Rect(128 + 16, 112, 16, 16), 3)
-			self.pics[1][0] = tools.getSubPic(pygame.Rect(128 + 64, 112, 16, 16), 3)
-			self.pics[1][1] = tools.getSubPic(pygame.Rect(128 + 80, 112, 16, 16), 3)
-			self.pics[2][0] = tools.getSubPic(pygame.Rect(128 + 32, 112, 16, 16), 3)
-			self.pics[2][1] = tools.getSubPic(pygame.Rect(128 + 48, 112, 16, 16), 3)
-			self.pics[3][0] = tools.getSubPic(pygame.Rect(128 + 96, 112, 16, 16), 3)
-			self.pics[3][1] = tools.getSubPic(pygame.Rect(128 + 112, 112, 16, 16), 3)
+			self.pics = [[[0 for i in range(2)] for i in range(4)] for i in range(8)]
+			for a in range(8):
+				for b in range(4):
+					dir = b
+					if b == 1 or b == 2: dir = 3 - b
+					self.pics[a][dir][0] = tools.getSubPic(pygame.Rect(128 + b * 32, a * 16, 16, 16), 3)
+					self.pics[a][dir][1] = tools.getSubPic(pygame.Rect(128 + b * 32 + 16, a * 16, 16, 16), 3)
 
 		self.scene = scene
 		self.colorPic = pygame.Surface((48, 48))
@@ -32,6 +30,7 @@ class BaseTank:
 		self.isCache = False
 		self.rect = pygame.Rect(0, 0, 48, 48)
 		self.level = 0
+		self.hp = 1  #生命值
 		self.color = pygame.Color(0, 255, 0)  #坦克颜色
 
 		self.moving = 0  #是否正在移动
@@ -61,7 +60,7 @@ class BaseTank:
 		i = int(self.ani / 3) % 2
 		# canvas.blit(self.pics[self.dire][i], (self.rect.x, self.rect.y))
 		self.colorPic.fill(pygame.Color(0, 0, 0))
-		self.colorPic.blit(self.pics[self.dire][i], (0, 0))
+		self.colorPic.blit(self.pics[self.level][self.dire][i], (0, 0))
 		self.colorPic.fill(self.color, special_flags=pygame.BLEND_MULT)
 		canvas.blit(self.colorPic, self.rect.topleft)
 
@@ -191,18 +190,22 @@ class TankAi(BaseTank):
 	def __init__(self, scene):
 		super().__init__(scene)
 
-	def init(self):
+	def init(self, level=0):
 		super().init()
-		self.color = pygame.Color(100, 100, 100)
-		self.level = 1
+		self.color = pygame.Color(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+		self.level = level + 4  #basic, fast, power, armor
+		if level == 0:
+			self.speed = 1
+			self.bulletSpeed = 6
+		if level == 1: self.speed = 3
+		if level == 2: self.bulletSpeed = 10
+		if level == 3: self.hp = 4
 		self.bulletNum = 1
-		self.stateAi = TankState.Born  #缓存, 出生, 生存, 死亡
 		self.direAi = 0
 		self.distAi = 0
 		self._thinking()
 
 	def draw(self, canvas):
-		# if self.stateAi.value <= TankState.Born.value: return
 		super().draw(canvas)
 
 	def _input(self):
@@ -228,6 +231,7 @@ class TankAi(BaseTank):
 			self.moving = False
 
 	def update(self):
+		if self.isCache: return
 		self.distAi -= 1
 		if self.distAi <= 0: self._thinking()
 		super().update()
@@ -236,7 +240,7 @@ class TankAi(BaseTank):
 	# 思考
 	def _thinking(self):
 		self.direAi = random.randint(-1, 3)
-		self.distAi = random.randint(2, 100)
+		self.distAi = random.randint(2, 255)
 		self.fireNew = True if random.random() > 0.5 else False
 		# print("ai fire:", self.fireNew)
 
