@@ -151,6 +151,7 @@ class SceneGame:
 				return True
 
 		if type(bullet.tank) == TankAi:
+			if self.tankMe.isCache: return False
 			if bullet.rectTest.colliderect(self.tankMe.rect):
 				self.tankMe.destory()
 				return True

@@ -4,6 +4,7 @@ from enum import Enum
 import tools
 import keymgr
 import effect
+import scenegame
 
 
 # 坦克
@@ -194,9 +195,14 @@ class TankMe(BaseTank):
 
 		self.fireNew = (keymgr.KeyMgr().isKeyJ() or keymgr.KeyMgr().isKeyJnum())
 
+	def update(self):
+		if self.isCache: return
+		super().update()
+
 	def destory(self):
 		self.scene.newEffect(self.rect.centerx, self.rect.centery, effect.EffectBomb)
 		self.isCache = True
+		scenegame.TankBorn(self.scene, True)
 
 
 class TankAi(BaseTank):
@@ -227,8 +233,8 @@ class TankAi(BaseTank):
 		self.dire = 1
 		self._thinking()
 
-	def draw(self, canvas):
-		super().draw(canvas)
+	# def draw(self, canvas):
+	# 	super().draw(canvas)
 
 	def _input(self):
 		self.moving = True
@@ -270,3 +276,4 @@ class TankAi(BaseTank):
 	def destory(self):
 		self.scene.newEffect(self.rect.centerx, self.rect.centery, effect.EffectBomb)
 		self.isCache = True
+		scenegame.TankBorn(self.scene, False)
