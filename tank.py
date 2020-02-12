@@ -37,7 +37,7 @@ class BaseTank:
 		self.ani = 0  #履带动画状态
 
 		self.dire = 0  #当前方向
-		self.speed = 2  #最大移动速度
+		self.speed = 3  #最大移动速度
 		self.vx = self.vy = 0  #当前速度
 		self.vxNew = self.vyNew = 0  #输入的动力
 
@@ -134,16 +134,34 @@ class BaseTank:
 		self._updateBound()
 		self._updateBullet()
 
+	def destory(self):
+		pass
+
+
+class TankEmpty(BaseTank):
+	def __init__(self, scene):
+		self.init()
+		pass
+
+	def update(self):
+		pass
+
+	def draw(self, canvas):
+		pass
+
 
 class TankMe(BaseTank):
 	def __init__(self, scene):
 		super().__init__(scene)
-		self.init()
+		self.init(0, 0)
 
-	def init(self):
+	def init(self, px, py):
 		super().init()
 		self.level = 3  #等级(吃'星'会提高等级, 等级越高, 威力越大)
 		# 				 (0级:单发, 1级:单发加速, 2级:双发加速, 3级:双发加速+消铁)
+		self.rect.x = px
+		self.rect.y = py
+		self.dire = 0
 
 	# 升级
 	def levelUp(self):
@@ -176,33 +194,37 @@ class TankMe(BaseTank):
 
 		self.fireNew = (keymgr.KeyMgr().isKeyJ() or keymgr.KeyMgr().isKeyJnum())
 
-
-class TankState(Enum):
-	Cache = 0
-	Born = 1
-	PreAlive = 2
-	Alive = 3
-	Die = 4
-	Thinking = 5
+	def destory(self):
+		self.scene.newEffect(self.rect.centerx, self.rect.centery, effect.EffectBomb)
+		self.isCache = True
 
 
 class TankAi(BaseTank):
 	def __init__(self, scene):
 		super().__init__(scene)
 
-	def init(self, level=0):
+	# 等级和起点坐标(左上角像素坐标)
+	def init(self, level=0, px=0, py=0):
 		super().init()
-		self.color = pygame.Color(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
-		self.level = level + 4  #basic, fast, power, armor
+		c = level * 63
+		self.color = pygame.Color(c, 255, 255 - c)
+		self.level = level + 4  #1basic, 2fast, 3power, 4armor
+		# 						Basic	#普通坦克(100, 1, slow1, slow6)
+		# 						Fast	#快速坦克(200, 1, fast3, normal8)
+		# 						Power	#火力坦克(300, 1, normal2, fast10)
+		# 						Armor	#重甲坦克(400, 4, normal2, normal8)
 		if level == 0:
-			self.speed = 1
+			self.speed = 2
 			self.bulletSpeed = 6
-		if level == 1: self.speed = 3
+		if level == 1: self.speed = 4
 		if level == 2: self.bulletSpeed = 10
 		if level == 3: self.hp = 4
 		self.bulletNum = 1
 		self.direAi = 0
 		self.distAi = 0
+		self.rect.x = px
+		self.rect.y = py
+		self.dire = 1
 		self._thinking()
 
 	def draw(self, canvas):
@@ -235,14 +257,14 @@ class TankAi(BaseTank):
 		self.distAi -= 1
 		if self.distAi <= 0: self._thinking()
 		super().update()
-		# print(self.vx, self.vy)
 
 	# 思考
 	def _thinking(self):
-		self.direAi = random.randint(-1, 3)
-		self.distAi = random.randint(2, 255)
+		if random.random() > 0.6: self.direAi = 1
+		else: self.direAi = random.randint(-1, 3)
+
+		self.distAi = random.randint(12, 50)
 		self.fireNew = True if random.random() > 0.5 else False
-		# print("ai fire:", self.fireNew)
 
 	# 被击毁
 	def destory(self):

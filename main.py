@@ -3,6 +3,7 @@ import os, sys, pygame
 from scenegame import *
 from level import *
 from keymgr import *
+from tools import *
 
 
 def main():
@@ -18,10 +19,11 @@ def main():
 	clock = pygame.time.Clock()
 	while True:
 		clock.tick(60)
-
 		key.update()
 		if key.isEscDown():
 			break
+
+		TimerMgr.update()
 
 		scene.update()
 		scene.draw(canvas)

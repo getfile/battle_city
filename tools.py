@@ -9,6 +9,57 @@ class Cacheable:
 		self.isCache = False  #是否是缓存对象
 
 
+# 定时器
+class Timer:
+	# time为帧数,60帧为1秒
+	def init(self, callback, time=60, loop=1):
+		self.isCache = False
+		self.tickv = time
+		self.tick = time
+		self.loop = loop
+		self.callback = callback
+
+	def update(self):
+		if self.isCache: return
+
+		self.tick -= 1
+		if self.tick > 0: return
+		if self.callback: self.callback()
+
+		self.loop -= 1
+		self.tick = self.tickv
+		if self.loop > 0: return
+
+		self.isCache = True
+
+
+class TimerMgr:
+	timers = []
+
+	@classmethod
+	def clearTimer(cls):
+		timers.clear()
+
+	@classmethod
+	def newTimer(cls, callback, time=60, loop=1):
+		timer = None
+		for item in cls.timers:
+			if item.isCache:
+				timer = item
+				break
+		if timer == None:
+			timer = Timer()
+			cls.timers.append(timer)
+		timer.init(callback, time, loop)
+
+	@classmethod
+	def update(cls):
+		for item in cls.timers:
+			if item.isCache: continue
+			item.update()
+		# print("timers num:", len(cls.timers))
+
+
 # 从图像中获取某区域图像, 并缩放到指定尺寸
 def getSubPic(rect, scale):
 	pic = pygame.Surface((rect.w, rect.h), pygame.SRCALPHA)

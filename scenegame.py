@@ -5,43 +5,84 @@ from tank import *
 from bullet import *
 from effect import *
 from ui import *
+from tools import *
+
+
+class TankBorn:
+	def __init__(self, scene, isMe=False):
+		self.scene = scene
+		self.isMe = isMe
+
+		self.level, self.px, self.py = self.scene.level.bornTank(isMe)
+		if self.level is None: return
+
+		self.scene.newEffect(self.px + 24, self.py + 24, EffectBorn, self.born)
+		# TimerMgr.newTimer(self.born)
+
+	def born(self):
+		if self.isMe:
+			self.scene.newTankMe(self.px, self.py)
+		else:
+			self.scene.newTankAI(self.level, self.px, self.py)
 
 
 # 游戏界面
 class SceneGame:
 	def __init__(self, surf):
 		self.level = Level(surf)
-		self.level.mapParseJson(25)  # 1-35
+		self.level.mapLoad(31)  # 1-35
 		self.level.mapDraw()
-		self.tankMe = TankMe(self)  #玩家坦克
-		self.tankCo = TankMe(self)  #协作坦克
-
+		self.tankMe = TankEmpty(self)
 		self.tankAIs = []  #敌方坦克集: 兼缓存池用
-		for i in range(10):
-			tankAi = TankAi(self)
-			tankAi.init(random.randint(0, 3))
-			tankAi.rect.topleft = (i * 48 + 48, 0)
-			self.tankAIs.append(tankAi)
 		self.bullets = []  #炮弹集: 兼缓存池用(包括正使用的和空闲待用的)
 		self.effects = []  #效果集 兼缓存池用
 		self.ui = UI()
 
-	# 初始化某关卡数值及资源
-	def initLevel(self, level):
+		self.levelStart()
+		# self.levelTest()
+
+	def levelTest(self):
+		self.tankMe = TankMe(self)  #玩家坦克
+		self.tankCo = TankMe(self)  #协作坦克
+		for i in range(12):
+			tankAi = TankAi(self)
+			tankAi.init(random.randint(0, 3))
+			tankAi.rect.topleft = (i * 48 + 48, 0)
+			self.tankAIs.append(tankAi)
 		pass
+
+	# 初始化某关卡数值及资源
+	def levelStart(self):
+		TankBorn(self, True)
+		TankBorn(self, False)
+		TankBorn(self, False)
+		TankBorn(self, False)
 
 	def moveOnSnow(self, rect):
 		return self.level.isOnSnow(rect)
 
-	def newTankMe(self, rect):
-		pass
+	# ME坦克重生
+	def newTankMe(self, px, py):
+		self.tankMe = TankMe(self)
+		self.tankMe.init(px, py)
+		print("first")
 
-	def newTankAI(self):
-		pass
+	# AI坦克重生
+	def newTankAI(self, level, px, py):
+		tank = None
+		for item in self.tankAIs:
+			if item.isCache:
+				tank = item
+				break
+		if tank is None:
+			tank = TankAi(self)
+			self.tankAIs.append(tank)
+		tank.init(level, px, py)
 
 	def delTankAI(self, tank):
 		pass
 
+	# 获取玩家坦克的位置
 	def getTankPos(self):
 		return self.tankMe.rect.centerx, self.tankMe.rect.centery
 
@@ -108,6 +149,12 @@ class SceneGame:
 			if bullet.rectTest.colliderect(t.rect):
 				t.destory()
 				return True
+
+		if type(bullet.tank) == TankAi:
+			if bullet.rectTest.colliderect(self.tankMe.rect):
+				self.tankMe.destory()
+				return True
+
 		return False
 
 	def update(self):

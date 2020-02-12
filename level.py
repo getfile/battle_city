@@ -1,4 +1,4 @@
-import os, sys, json, pygame
+import os, sys, json, random, pygame
 
 import tools
 
@@ -32,10 +32,10 @@ class Level:
 		self.map = []  #关卡元素集(0空地, 1砖墙(16*16), 2河流, 3雪地, 4树林, 5铁墙(4*4), 6堡垒)
 		self.map = [[0 for i in range(self.col)] for i in range(self.row)]
 		self.mapTanks = []
-		# self.tankBasic = 0  #普通坦克(100, 1, slow, slow)
-		# self.tankFast = 0  #快速坦克(200, 1, fast, normal)
-		# self.tankPower = 0  #火力坦克(300, 1, normal, fast)
-		# self.tankArmor = 0  #重甲坦克(400, 4, normal, normal)
+		self.mapTankToLevel = {"basic": 0, "fast": 1, "power": 2, "armor": 3}
+		self.mapDifficulty = 0
+		self.mapBorn = [0, 6 * 48, 12 * 48]  #出生点集
+		self.mapBornId = 0  #当前出生点
 		self._initRes()
 
 	def _initRes(self):
@@ -61,17 +61,29 @@ class Level:
 		if self.map[r][b] == 3: all += 1
 		return all > 2
 
+	def bornTank(self, isMe):
+		if isMe:
+			if random.random() > 0.5: return 0, 15 * 24, 12 * 48
+			else: return 0, 9 * 24, 12 * 48
+
+		if len(self.mapTanks) > 0:
+			level = self.mapTankToLevel[self.mapTanks.pop(0)]
+			self.mapBornId = (self.mapBornId + 1) % 3
+			return level, self.mapBorn[self.mapBornId], 0
+
+		return None, None, None
+
 	# 解析关卡文件(json格式)
 	# 坦克类型: basic| fast| power| armor
 	# 地形类型: 空地0 X| 砖块1 B<n>| 河流2 R| 雪地3 S| 森林4 F| 钢块5 T<n>| 堡垒6 E
-	def mapParseJson(self, levelNo):
-
+	def mapLoad(self, levelNo):
 		self.itemIds = {'X': 0, 'B': 1, 'R': 2, 'S': 3, 'F': 4, 'T': 5, 'E': 6}  #json中元素字符 映射为id
 		jsonFile = "resources/level/stage-" + str(levelNo) + ".json"
 		f = open(jsonFile, 'rb')
 		txt = f.read()
 		f.close()
 		j = json.loads(txt)
+		self.mapDifficulty = j["difficulty"]
 		mapData = j['map']
 		x, y = 0, 0
 		for line in mapData:
@@ -85,11 +97,9 @@ class Level:
 		for item in bots:
 			numtype = item.split("*")
 			if len(numtype) < 2: continue
-			self.mapTanks += [numtype[1] for i in range(int(numtype[0]))]
+			self.mapTanks.extend([numtype[1] for i in range(int(numtype[0]))])
 
-		print(jsonFile)
 		print(self.mapTanks)
-		# print(self.map)
 
 	def _fillItems(self, x, y, item):
 		x *= 2
