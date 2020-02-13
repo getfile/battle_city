@@ -35,10 +35,19 @@ class Timer:
 
 class TimerMgr:
 	timers = []
+	isPause = False
 
 	@classmethod
 	def clearTimer(cls):
-		timers.clear()
+		cls.timers.clear()
+
+	@classmethod
+	def pause(cls):
+		cls.isPause = True
+
+	@classmethod
+	def resume(cls):
+		cls.isPause = False
 
 	@classmethod
 	def newTimer(cls, callback, time=60, loop=1):
@@ -54,6 +63,7 @@ class TimerMgr:
 
 	@classmethod
 	def update(cls):
+		if cls.isPause: return
 		for item in cls.timers:
 			if item.isCache: continue
 			item.update()

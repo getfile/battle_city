@@ -12,8 +12,10 @@ class TankBorn:
 	def __init__(self, scene, isMe=False):
 		self.scene = scene
 		self.isMe = isMe
+		TimerMgr.newTimer(self.delayBorn)
 
-		self.level, self.px, self.py = self.scene.level.bornTank(isMe)
+	def delayBorn(self):
+		self.level, self.px, self.py = self.scene.level.bornTank(self.isMe)
 		if self.level is None: return
 
 		self.scene.newEffect(self.px + 24, self.py + 24, EffectBorn, self.born)
@@ -29,15 +31,18 @@ class TankBorn:
 # 游戏界面
 class SceneGame:
 	def __init__(self, surf):
+		self.isPause = False
 		self.level = Level(surf)
-		self.level.mapLoad(31)  # 1-35
+		self.level.mapLoad(32)  # 1-35
 		self.level.mapDraw()
 		self.tankMe = TankEmpty(self)
 		self.tankAIs = []  #敌方坦克集: 兼缓存池用
 		self.bullets = []  #炮弹集: 兼缓存池用(包括正使用的和空闲待用的)
 		self.effects = []  #效果集 兼缓存池用
-		self.ui = UI()
+		self.aiKilled = 0  #击毁坦克数
+		self.meKilled = 0  #被击毁数
 
+		self.ui = UI()
 		self.levelStart()
 		# self.levelTest()
 
@@ -58,6 +63,11 @@ class SceneGame:
 		TankBorn(self, False)
 		TankBorn(self, False)
 
+	def pause(self):
+		self.isPause = not self.isPause
+		if self.isPause: TimerMgr.pause()
+		else: TimerMgr.resume()
+
 	def moveOnSnow(self, rect):
 		return self.level.isOnSnow(rect)
 
@@ -65,7 +75,10 @@ class SceneGame:
 	def newTankMe(self, px, py):
 		self.tankMe = TankMe(self)
 		self.tankMe.init(px, py)
-		print("first")
+
+	def hitTankMe(self):
+		self.tankMe.destory()
+		self.meKilled += 1
 
 	# AI坦克重生
 	def newTankAI(self, level, px, py):
@@ -78,9 +91,13 @@ class SceneGame:
 			tank = TankAi(self)
 			self.tankAIs.append(tank)
 		tank.init(level, px, py)
+		# print("tankAi left:", len(self.level.mapTanks))
 
-	def delTankAI(self, tank):
-		pass
+	def hitTankAI(self, tank):
+		tank.hp -= 1
+		if tank.hp > 0: return
+		tank.destory()
+		self.aiKilled += 1
 
 	# 获取玩家坦克的位置
 	def getTankPos(self):
@@ -136,29 +153,33 @@ class SceneGame:
 	def flyCollision(self, bullet):
 		if self.level.isBlockingFly(bullet.rectTest):
 			return True
+
 		for b in self.bullets:
 			if b.isCache: continue
 			if bullet is b: continue
 			if bullet.rectTest.colliderect(b.rectTest):
 				b.destory()
 				return True
-		for t in self.tankAIs:
-			if t.isCache: continue
-			if bullet.tank is t: continue
-			if type(bullet.tank) == type(t): continue
-			if bullet.rectTest.colliderect(t.rect):
-				t.destory()
-				return True
+
+		if type(bullet.tank) == TankMe:
+			for t in self.tankAIs:
+				if t.isCache: continue
+				if bullet.rectTest.colliderect(t.rect):
+					self.hitTankAI(t)
+					return True
 
 		if type(bullet.tank) == TankAi:
 			if self.tankMe.isCache: return False
 			if bullet.rectTest.colliderect(self.tankMe.rect):
-				self.tankMe.destory()
+				self.hitTankMe()
 				return True
 
 		return False
 
 	def update(self):
+		if keymgr.KeyMgr().isBackspace(): self.pause()
+		if self.isPause: return
+
 		self.tankMe.update()
 
 		for item in self.tankAIs:
@@ -180,4 +201,4 @@ class SceneGame:
 			item.draw(canvas)
 
 		self.level.drawTop(canvas)
-		self.ui.drawFrame(canvas)
+		self.ui.drawFrame(canvas, self.aiKilled, self.meKilled)
