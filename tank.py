@@ -54,17 +54,6 @@ class BaseTank:
 	def bulletBomb(self):
 		self.bulletCount -= 1
 
-	def draw(self, canvas):
-		if self.isCache: return
-		if self.moving: self.ani += 1
-		else: self.ani = 0
-		i = int(self.ani / 3) % 2
-		# canvas.blit(self.pics[self.dire][i], (self.rect.x, self.rect.y))
-		self.colorPic.fill(pygame.Color(0, 0, 0))
-		self.colorPic.blit(self.pics[self.level][self.dire][i], (0, 0))
-		self.colorPic.fill(self.color, special_flags=pygame.BLEND_MULT)
-		canvas.blit(self.colorPic, self.rect.topleft)
-
 	# 计算输入(用户, ai, 网络)
 	def _input(self):
 		pass
@@ -134,6 +123,17 @@ class BaseTank:
 		self._updatePower()
 		self._updateBound()
 		self._updateBullet()
+
+	def draw(self, canvas):
+		if self.isCache: return
+		if self.moving: self.ani += 1
+		else: self.ani = 0
+		i = int(self.ani / 3) % 2
+		# canvas.blit(self.pics[self.dire][i], (self.rect.x, self.rect.y))
+		self.colorPic.fill(pygame.Color(0, 0, 0))
+		self.colorPic.blit(self.pics[self.level][self.dire][i], (0, 0))
+		self.colorPic.fill(self.color, special_flags=pygame.BLEND_MULT)
+		canvas.blit(self.colorPic, self.rect.topleft)
 
 	def destory(self):
 		pass
@@ -214,7 +214,7 @@ class TankAi(BaseTank):
 		super().init()
 		c = level * 63
 		self.color = pygame.Color(c, 255, 255 - c)
-		self.level = level + 4  #1basic, 2fast, 3power, 4armor
+		self.level = level + 4  #0basic, 1fast, 2power, 3armor
 		# 						Basic	#普通坦克(100, 1, slow1, slow6)
 		# 						Fast	#快速坦克(200, 1, fast3, normal8)
 		# 						Power	#火力坦克(300, 1, normal2, fast10)
@@ -232,9 +232,6 @@ class TankAi(BaseTank):
 		self.rect.y = py
 		self.dire = 1
 		self._thinking()
-
-	# def draw(self, canvas):
-	# 	super().draw(canvas)
 
 	def _input(self):
 		self.moving = True

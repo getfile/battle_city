@@ -142,10 +142,22 @@ class Level:
 		self._killBlock(level, r, t)
 		self._killBlock(level, r, b)
 
+	# 指定块是否是堡垒
+	def isFortBlock(self, rect):
+		l = int(rect.x / 24)
+		t = int(rect.y / 24)
+		r = int((rect.right - 1) / 24)
+		b = int((rect.bottom - 1) / 24)
+		id1 = self.map[l][t]
+		id2 = self.map[l][b]
+		id3 = self.map[r][t]
+		id4 = self.map[r][b]
+		return (id1 == 6 or id2 == 6 or id3 == 6 or id4 == 6)
+
 	# 指定的块是否是障碍
 	def _isFlyBlock(self, xx, yy):
 		id = self.map[xx][yy]
-		return (id == 1 or id == 5 or id == 6)
+		return (id == 1 or id == 5)  #or id == 6)
 
 	# 飞越时指定的矩形是否碰到障碍
 	def isBlockingFly(self, rect):

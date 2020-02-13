@@ -39,8 +39,10 @@ class SceneGame:
 		self.tankAIs = []  #敌方坦克集: 兼缓存池用
 		self.bullets = []  #炮弹集: 兼缓存池用(包括正使用的和空闲待用的)
 		self.effects = []  #效果集 兼缓存池用
+
 		self.aiKilled = 0  #击毁坦克数
 		self.meKilled = 0  #被击毁数
+		self.fortKilled = 0
 
 		self.ui = UI()
 		self.levelStart()
@@ -70,6 +72,9 @@ class SceneGame:
 
 	def moveOnSnow(self, rect):
 		return self.level.isOnSnow(rect)
+
+	def hitFort(self):
+		self.newEffect(13 * 24, 25 * 24, EffectBomb)
 
 	# ME坦克重生
 	def newTankMe(self, px, py):
@@ -118,7 +123,8 @@ class SceneGame:
 
 	# 销毁炮弹(炮弹id, 坦克id)
 	def delBullet(self, bullet):
-		if not bullet.tank.isCache: bullet.tank.bulletBomb()
+		if not bullet.tank.isCache:
+			bullet.tank.bulletBomb()
 		self.level.bulletBomb(bullet.level, bullet.rect)
 
 	# 添加效果(效果中心坐标, 效果类型)
@@ -154,14 +160,13 @@ class SceneGame:
 		if self.level.isBlockingFly(bullet.rectTest):
 			return True
 
-		for b in self.bullets:
-			if b.isCache: continue
-			if bullet is b: continue
-			if bullet.rectTest.colliderect(b.rectTest):
-				b.destory()
-				return True
-
 		if type(bullet.tank) == TankMe:
+			for b in self.bullets:
+				if b.isCache: continue
+				if bullet is b: continue
+				if bullet.rectTest.colliderect(b.rectTest):
+					b.destory()
+					return True
 			for t in self.tankAIs:
 				if t.isCache: continue
 				if bullet.rectTest.colliderect(t.rect):
@@ -169,9 +174,11 @@ class SceneGame:
 					return True
 
 		if type(bullet.tank) == TankAi:
-			if self.tankMe.isCache: return False
-			if bullet.rectTest.colliderect(self.tankMe.rect):
+			if (not self.tankMe.isCache) and bullet.rectTest.colliderect(self.tankMe.rect):
 				self.hitTankMe()
+				return True
+			if self.level.isFortBlock(bullet.rectTest):
+				self.hitFort()
 				return True
 
 		return False
