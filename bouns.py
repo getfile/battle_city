@@ -16,9 +16,10 @@ class Bouns:
 			self.pics.append(tools.getSubPic(pygame.Rect(304, 112, 16, 16), 3))  #五星
 			self.pics.append(tools.getSubPic(pygame.Rect(320, 112, 16, 16), 3))  #手雷
 			self.pics.append(tools.getSubPic(pygame.Rect(336, 112, 16, 16), 3))  #坦克
+			ckey = pygame.Color(0, 66, 74)
+			rect = pygame.Rect(0, 0, 48, 48)
 			for i in range(6):
-				# self.pics[i].set_colorkey(pygame.Color(0, 66, 74))
-				self.pics[i].set_alpha(0.7)
+				self.pics[i] = tools.getPicByColorkey(self.pics[i], rect, ckey)
 
 		self.isCache = True
 		self.id = 0

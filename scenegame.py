@@ -34,12 +34,12 @@ class SceneGame:
 	def __init__(self, surf):
 		self.isPause = False
 		self.level = Level(surf)
-		self.level.mapLoad(29)  # 1-35
+		self.level.mapLoad(4)  # 1-35
 		self.level.mapDraw()
 		self.tankMe = TankEmpty(self)
-		self.tankAIs = []  #敌方坦克集: 兼缓存池用
-		self.bullets = []  #炮弹集: 兼缓存池用(包括正使用的和空闲待用的)
-		self.effects = []  #效果集 兼缓存池用
+		self.tankAIs = []  #敌方坦克集
+		self.bullets = []  #炮弹集(包括正使用的和空闲待用的)
+		self.effects = []  #效果集
 		self.bouns = Bouns()
 
 		self.aiKilled = 0  #击毁坦克数
