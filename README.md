@@ -17,8 +17,8 @@
 	https://strategywiki.org/wiki/Battle_City/Walkthrough
 
 
-#### 实现目标[还未完成]:
+#### 实现目标:
 
 	单人对抗ai
-	双人协作对抗ai
+	双人协作对抗ai[未完成]
 	能否转换成多人对战模式?

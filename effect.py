@@ -55,7 +55,7 @@ class Effect:
 		canvas.blit(self.pics[idx], (rect.x, rect.y))
 
 
-# ai坦克出生效果
+# 坦克出生效果
 class EffectBorn(Effect):
 	def __init__(self, scene):
 		super().__init__(scene)
@@ -66,7 +66,7 @@ class EffectBorn(Effect):
 		# self.cx, self.cy = self.scene.getTankPos()
 
 
-# 爆炸效果(坦克爆炸))
+# 爆炸效果(坦克,堡垒))
 class EffectBomb(Effect):
 	def __init__(self, scene):
 		super().__init__(scene)
@@ -90,7 +90,7 @@ class EffectArmor(Effect):
 		self.cx, self.cy = self.scene.getTankPos()
 
 
-# 爆炸效果(子弹爆炸)
+# 爆炸效果(子弹)
 class EffectBlast(Effect):
 	def __init__(self, scene):
 		super().__init__(scene)

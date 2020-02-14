@@ -3,12 +3,6 @@ import os, sys, json, random, pygame
 import tools
 
 
-# 奖励
-class Bouns:
-	def __init__(self):
-		pass
-
-
 # 地图元素:
 # 每个元素能分解成16个小元素
 class Item:
@@ -61,6 +55,21 @@ class Level:
 		if self.map[r][b] == 3: all += 1
 		return all > 2
 
+	# 获取奖励的随机位置
+	def getBounsPos(self):
+		for i in range(10):
+			x = random.randint(0, 24)
+			y = random.randint(0, 24)
+			if self.isReachBlock(x, y) or self.isReachBlock(x + 1, y) or self.isReachBlock(x, y + 1) or self.isReachBlock(x + 1, y + 1):
+				return x * 24, y * 24
+		return 0, 0
+
+	# 指定块是否可到达的块
+	def isReachBlock(self, xx, yy):
+		id = self.map[xx][yy]
+		return id == 0 or id == 1 or id == 3 or id == 4
+
+	# 获取坦克重生的坐标和等级
 	def bornTank(self, isMe):
 		if isMe:
 			if random.random() > 0.5: return 0, 15 * 24, 12 * 48
@@ -122,6 +131,21 @@ class Level:
 				if id == 4: self.treeGround.blit(self.itemPic[id], (x * self.itemWid, y * self.itemHei))
 				else: self.background.blit(self.itemPic[id], (x * self.itemWid, y * self.itemHei))
 		self.background.blit(self.itemPic[6], (12 * self.itemWid, 24 * self.itemHei))
+
+	# 销毁堡垒
+	def fortKill(self):
+		self.background.blit(self.itemPic[0], (12 * self.itemWid, 24 * self.itemHei))
+
+	# 设置堡垒周围的障碍
+	def setFortBlock(self, isIron=False):
+		id = 5 if isIron else 1
+		for i in range(11, 14):
+			for j in range(23, 25):
+				if (i == 12 or i == 13) and (j == 24 or j == 25): continue
+				self.map[i][j] = id
+		for i in range(11, 14):
+			for j in range(23, 25):
+				self.background.blit(self.itemPic[id], (i * self.itemWid, j * self.itemHei))
 
 	# 销毁障碍
 	def _killBlock(self, level, xx, yy):

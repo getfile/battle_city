@@ -4,6 +4,7 @@ from level import *
 from tank import *
 from bullet import *
 from effect import *
+from bouns import *
 from ui import *
 from tools import *
 
@@ -33,12 +34,13 @@ class SceneGame:
 	def __init__(self, surf):
 		self.isPause = False
 		self.level = Level(surf)
-		self.level.mapLoad(32)  # 1-35
+		self.level.mapLoad(29)  # 1-35
 		self.level.mapDraw()
 		self.tankMe = TankEmpty(self)
 		self.tankAIs = []  #敌方坦克集: 兼缓存池用
 		self.bullets = []  #炮弹集: 兼缓存池用(包括正使用的和空闲待用的)
 		self.effects = []  #效果集 兼缓存池用
+		self.bouns = Bouns()
 
 		self.aiKilled = 0  #击毁坦克数
 		self.meKilled = 0  #被击毁数
@@ -84,6 +86,8 @@ class SceneGame:
 	def hitTankMe(self):
 		self.tankMe.destory()
 		self.meKilled += 1
+		xx, yy = self.level.getBounsPos()
+		self.bouns.init(xx, yy)
 
 	# AI坦克重生
 	def newTankAI(self, level, px, py):
@@ -177,9 +181,10 @@ class SceneGame:
 			if (not self.tankMe.isCache) and bullet.rectTest.colliderect(self.tankMe.rect):
 				self.hitTankMe()
 				return True
-			if self.level.isFortBlock(bullet.rectTest):
-				self.hitFort()
-				return True
+
+		if self.level.isFortBlock(bullet.rectTest):
+			self.hitFort()
+			return True
 
 		return False
 
@@ -208,4 +213,5 @@ class SceneGame:
 			item.draw(canvas)
 
 		self.level.drawTop(canvas)
+		self.bouns.draw(canvas)
 		self.ui.drawFrame(canvas, self.aiKilled, self.meKilled)

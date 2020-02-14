@@ -1,3 +1,4 @@
 test*.py
+*.cpp
 __pycache__/
 
