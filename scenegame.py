@@ -29,18 +29,20 @@ class TankBorn:
 			self.scene.newTankAI(self.level, self.px, self.py)
 
 
-# 游戏界面
 class SceneGame:
+	''' 游戏界面
+	'''
 	def __init__(self, surf):
 		self.isPause = False
 		self.level = Level(surf)
 		self.level.mapLoad(4)  # 1-35
 		self.level.mapDraw()
+		self.life = 3
 		self.tankMe = TankEmpty(self)
 		self.tankAIs = []  #敌方坦克集
 		self.bullets = []  #炮弹集(包括正使用的和空闲待用的)
 		self.effects = []  #效果集
-		self.bouns = Bouns()
+		self.bouns = Bouns(self)
 
 		self.aiKilled = 0  #击毁坦克数
 		self.meKilled = 0  #被击毁数
@@ -60,37 +62,54 @@ class SceneGame:
 			self.tankAIs.append(tankAi)
 		pass
 
-	# 初始化某关卡数值及资源
 	def levelStart(self):
+		''' 初始化某关卡数值及资源 '''
 		TankBorn(self, True)
 		TankBorn(self, False)
 		TankBorn(self, False)
 		TankBorn(self, False)
 
 	def pause(self):
+		''' 暂停游戏 '''
 		self.isPause = not self.isPause
 		if self.isPause: TimerMgr.pause()
 		else: TimerMgr.resume()
 
 	def moveOnSnow(self, rect):
+		''' 是否在雪地上 '''
 		return self.level.isOnSnow(rect)
 
+	def hitBouns(self):
+		''' 碰到奖励 '''
+		self.bouns.beHit()
+		self.bouns.destory()
+		pass
+
 	def hitFort(self):
+		''' 堡垒被击中 '''
 		self.newEffect(13 * 24, 25 * 24, EffectBomb)
 
-	# ME坦克重生
+	def addOneLife(self):
+		''' 添加一条命 '''
+		self.life += 1
+
 	def newTankMe(self, px, py):
+		''' ME坦克重生 '''
 		self.tankMe = TankMe(self)
 		self.tankMe.init(px, py)
 
 	def hitTankMe(self):
+		''' ME坦克被击中 '''
+		if self.tankMe.isGod: return
 		self.tankMe.destory()
 		self.meKilled += 1
-		xx, yy = self.level.getBounsPos()
-		self.bouns.init(xx, yy)
+		self.life -= 1
+		for item in self.effects:
+			if type(item) == EffectArmor:
+				item.destory()
 
-	# AI坦克重生
 	def newTankAI(self, level, px, py):
+		''' AI坦克重生 '''
 		tank = None
 		for item in self.tankAIs:
 			if item.isCache:
@@ -103,17 +122,26 @@ class SceneGame:
 		# print("tankAi left:", len(self.level.mapTanks))
 
 	def hitTankAI(self, tank):
+		''' AI坦克被击中 '''
 		tank.hp -= 1
 		if tank.hp > 0: return
 		tank.destory()
 		self.aiKilled += 1
+		xx, yy = self.level.getBounsPos()
+		self.bouns.init(xx, yy)
 
-	# 获取玩家坦克的位置
+	def killAllTankAi(self):
+		for item in self.tankAIs:
+			if item.isCache: continue
+			item.destory()
+			self.aiKilled += 1
+
 	def getTankPos(self):
+		''' 获取玩家坦克的位置 '''
 		return self.tankMe.rect.centerx, self.tankMe.rect.centery
 
-	# 发射炮弹(坦克id, 炮弹坐标, 炮弹方向)
 	def newBullet(self, tank, cx, cy):
+		''' 发射炮弹(坦克id, 炮弹坐标, 炮弹方向) '''
 		bullet = None
 		for item in self.bullets:  #寻找空闲的对象
 			if item.isCache:
@@ -125,17 +153,26 @@ class SceneGame:
 		bullet.init(self, tank, cx, cy)
 		# print("bullet num:", len(self.bullets))
 
-	# 销毁炮弹(炮弹id, 坦克id)
 	def delBullet(self, bullet):
+		''' 销毁炮弹(炮弹id, 坦克id) '''
 		if not bullet.tank.isCache:
 			bullet.tank.bulletBomb()
 		self.level.bulletBomb(bullet.level, bullet.rect)
 
-	# 添加效果(效果中心坐标, 效果类型)
 	def newEffect(self, cx, cy, EffectCls, callback=None):
+		''' 添加效果(效果中心坐标, 效果类型) '''
 		effect = None
 		for item in self.effects:
 			if item.isCache and isinstance(item, EffectCls):
+				effect = item
+				break
+			if type(item) == EffectCls and EffectCls == EffectArmor:
+				effect = item
+				break
+			if type(item) == EffectCls and EffectCls == EffectFreeze:
+				effect = item
+				break
+			if type(item) == EffectCls and EffectCls == EffectFort:
 				effect = item
 				break
 		if effect == None:
@@ -144,23 +181,26 @@ class SceneGame:
 		effect.init(cx, cy, callback)
 		# print("effect num:", len(self.effects))
 
-	# 删除效果
 	def delEffect(self, effect):
+		''' 删除效果 '''
 		pass
 
-	# 坦克移动碰撞检测, 返回是否有碰撞产生
 	def moveCollision(self, tank):
+		''' 坦克移动碰撞检测, 返回是否有碰撞产生 '''
 		if self.level.isBlockingMove(tank.rect): return True
 		for t in self.tankAIs:
 			if t.isCache: continue
 			if tank == t: continue
 			if tank.rect.colliderect(t.rect): return True
-		if tank == self.tankMe: return False
+		if tank == self.tankMe:
+			if (not self.bouns.isCache) and tank.rect.colliderect(self.bouns.rect):
+				self.hitBouns()
+			return False
 		if tank.rect.colliderect(self.tankMe.rect): return True
 		return False
 
-	# 炮弹碰撞检测, 返回是否有碰撞产生
 	def flyCollision(self, bullet):
+		''' 炮弹碰撞检测, 返回是否有碰撞产生 '''
 		if self.level.isBlockingFly(bullet.rectTest):
 			return True
 
@@ -214,4 +254,4 @@ class SceneGame:
 
 		self.level.drawTop(canvas)
 		self.bouns.draw(canvas)
-		self.ui.drawFrame(canvas, self.aiKilled, self.meKilled)
+		self.ui.drawFrame(canvas, self.aiKilled, self.life)

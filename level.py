@@ -139,17 +139,16 @@ class Level:
 	# 设置堡垒周围的障碍
 	def setFortBlock(self, isIron=False):
 		id = 5 if isIron else 1
-		for i in range(11, 14):
-			for j in range(23, 25):
+		for i in range(11, 15):
+			for j in range(23, 26):
 				if (i == 12 or i == 13) and (j == 24 or j == 25): continue
 				self.map[i][j] = id
-		for i in range(11, 14):
-			for j in range(23, 25):
 				self.background.blit(self.itemPic[id], (i * self.itemWid, j * self.itemHei))
 
 	# 销毁障碍
 	def _killBlock(self, level, xx, yy):
 		id = self.map[xx][yy]
+		# print("block id:", id)
 		if id == 1 or (id == 5 and level == 3):
 			self.map[xx][yy] = 0
 			self.background.blit(self.itemPic[0], (xx * self.itemWid, yy * self.itemHei))

@@ -38,12 +38,12 @@ class BaseTank:
 		self.ani = 0  #履带动画状态
 
 		self.dire = 0  #当前方向
-		self.speed = 3  #最大移动速度
+		self.speed = 2  #最大移动速度
 		self.vx = self.vy = 0  #当前速度
 		self.vxNew = self.vyNew = 0  #输入的动力
 
 		self.bulletSpeed = 8  #炮弹速度
-		self.bulletNum = 2  #能同时存在的最大炮弹数量
+		self.bulletNum = 1  #能同时存在的最大炮弹数量
 		self.bulletCount = 0  #当前已经发射的炮弹数量
 		self.bulletGap = 20  #炮弹发射之间的时间间隔(帧数)
 		self.bulletFrame = 0  #当前发射后的倒计时
@@ -142,6 +142,7 @@ class BaseTank:
 class TankEmpty(BaseTank):
 	def __init__(self, scene):
 		self.init()
+		self.isGod = False
 		pass
 
 	def update(self):
@@ -158,11 +159,13 @@ class TankMe(BaseTank):
 
 	def init(self, px, py):
 		super().init()
-		self.level = 3  #等级(吃'星'会提高等级, 等级越高, 威力越大)
+		self.level = 0  #等级(吃'星'会提高等级, 等级越高, 威力越大)
 		# 				 (0级:单发, 1级:单发加速, 2级:双发加速, 3级:双发加速+消铁)
 		self.rect.x = px
 		self.rect.y = py
 		self.dire = 0
+
+		self.isGod = False  #是否盔甲保护
 
 	# 升级
 	def levelUp(self):
@@ -170,6 +173,9 @@ class TankMe(BaseTank):
 		self.level += 1
 		if self.level == 1: self.bulletSpeed += 2
 		if self.level == 2: self.bulletNum += 1
+
+	def setGod(self, result):
+		self.isGod = result
 
 	def _input(self):
 		self.moving = True
@@ -208,6 +214,7 @@ class TankMe(BaseTank):
 class TankAi(BaseTank):
 	def __init__(self, scene):
 		super().__init__(scene)
+		self.isFreeze = False  #是否被冻结
 
 	# 等级和起点坐标(左上角像素坐标)
 	def init(self, level=0, px=0, py=0):
@@ -257,6 +264,7 @@ class TankAi(BaseTank):
 
 	def update(self):
 		if self.isCache: return
+		if self.isFreeze: return
 		self.distAi -= 1
 		if self.distAi <= 0: self._thinking()
 		super().update()

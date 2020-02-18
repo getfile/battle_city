@@ -10,7 +10,7 @@ class Effect:
 	# 初始化实例对象
 	def __init__(self, scene):
 		self.frames = []  #播放动画集
-		self.frameGap = 3
+		self.frameGap = 3  #每帧显示次数
 		self.scene = scene
 
 		if self.pics == None:
@@ -54,6 +54,9 @@ class Effect:
 		rect.centery = self.cy
 		canvas.blit(self.pics[idx], (rect.x, rect.y))
 
+	def destory(self):
+		self.isCache = True
+
 
 # 坦克出生效果
 class EffectBorn(Effect):
@@ -63,7 +66,6 @@ class EffectBorn(Effect):
 
 	def update(self):
 		super().update()
-		# self.cx, self.cy = self.scene.getTankPos()
 
 
 # 爆炸效果(坦克,堡垒))
@@ -76,18 +78,34 @@ class EffectBomb(Effect):
 
 	def update(self):
 		super().update()
-		# self.cx, self.cy = self.scene.getTankPos()
 
 
 # 无敌效果
 class EffectArmor(Effect):
 	def __init__(self, scene):
 		super().__init__(scene)
-		self.frames = [5, 6, 5, 6, 5, 6, 5, 6]
+		self.frames = [5, 6]
+
+	def init(self, cx, cy, callback):
+		self.isCache = False  #是否空闲对象
+		self.delay = 600
+		self.playIdx = 0
+		self.cx = self.cy = 0
+		self.callback = None
+		self.scene.tankMe.setGod(True)
 
 	def update(self):
-		super().update()
+		if self.isCache: return
 		self.cx, self.cy = self.scene.getTankPos()
+		self.playIdx += 1
+		if self.playIdx >= len(self.frames) * self.frameGap: self.playIdx = 0
+		self.delay -= 1
+		if self.delay > 0: return
+
+		self.isCache = True
+		if self.callback: self.callback()
+		self.scene.delEffect(self)
+		self.scene.tankMe.setGod(False)
 
 
 # 爆炸效果(子弹)
@@ -103,3 +121,40 @@ class EffectBlast(Effect):
 class EffectFort(Effect):
 	def __init__(self, scene):
 		super().__init__(scene)
+
+	def init(self, cx, cy, callback=None):
+		self.isCache = False
+		self.scene.level.setFortBlock(True)
+		self.delay = 600
+
+	def update(self):
+		if self.isCache: return
+		self.delay -= 1
+		if self.delay > 0: return
+
+		self.scene.level.setFortBlock(False)
+		self.isCache = True
+
+	def draw(self, canvas):
+		pass
+
+
+# 冻结ai坦克效果(一定时间内所有坦克都会被冻结)
+class EffectFreeze(Effect):
+	def init(self, cx, cy, callback=None):
+		self.isCache = False
+		self.delay = 600
+		for item in self.scene.tankAIs:
+			item.isFreeze = True
+
+	def update(self):
+		if self.isCache: return
+		self.delay -= 1
+		if self.delay > 0: return
+
+		for item in self.scene.tankAIs:
+			item.isFreeze = False
+		self.isCache = True
+
+	def draw(self, canvas):
+		pass
